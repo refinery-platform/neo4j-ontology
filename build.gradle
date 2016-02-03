@@ -1,0 +1,38 @@
+apply plugin: 'java'
+apply plugin: 'idea'
+
+version = '0.1.0'
+
+libsDirName = '../dist'
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    release
+}
+
+dependencies {
+    compile 'org.neo4j:neo4j:2.3.1'
+    compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.6.4'
+    release 'com.fasterxml.jackson.core:jackson-databind:2.6.4'
+}
+
+jar {
+    archiveName = 'ontology.' + extension
+    // Create a 'fat' jar by including all dependencies
+    from {
+        configurations.release.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    manifest {
+        attributes('Main-Class': 'org.neo4j.ontologies.server.unmanaged.AnnotationResource',
+                   'Implementation-Title': 'Annotations',
+                   'Implementation-Version': version)
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.6'
+}
