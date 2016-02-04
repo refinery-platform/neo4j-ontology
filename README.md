@@ -1,4 +1,4 @@
-# Neo4J Ontology Extensions
+# Neo4J Ontology Extensions [![Build Status](https://travis-ci.org/refinery-platform/neo4j-ontology.svg?branch=master)](https://travis-ci.org/refinery-platform/neo4j-ontology)
 
 > Collection of plug-ins and extensions to simplify access to the ontology-related properties and the annotation set hierarchy
 
