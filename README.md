@@ -1,6 +1,6 @@
 # Neo4J Ontology Extensions
 
-> Collection of plugins and extensions to simplify access to the ontolog-related properties and the annotation set hierarchy
+> Collection of plug-ins and extensions to simplify access to the ontology-related properties and the annotation set hierarchy
 
 ---
 
@@ -13,7 +13,7 @@ Content:
 
 ## 1. Installation
 
-For the sake of concision I assume that Neo4J has been installed in `/neo4j/`. Make sure to adjust it to your setup accordingly.
+For the sake of concision I assume that Neo4J has been installed in `/neo4j/`. Make sure to adjust it to your set-up accordingly.
 
 1. Stop Neo4J
 
@@ -23,7 +23,7 @@ For the sake of concision I assume that Neo4J has been installed in `/neo4j/`. M
    $ neo4j start
    ```
 
-2. Download or [compile](#compile-yourself) the JAR and copy it to Neo4J's plugin directoy.
+2. Download or [compile](#compile-yourself) the JAR and copy it to Neo4J's plug-in directory.
 
    ```
    cp ./dist/ontology.jar /neo4j/plugins/
@@ -72,3 +72,8 @@ gradlew build
 
 **Description:** Returns an object with all terms (or classes) directly or indirectly related to annotations of user's accessible data sets.
 
+### Get number of annotations per data set across the repository
+
+**URL:** `http://localhost:7474/db/data/ext/Annotations/graphdb/getNumAnnoPerDataSet`
+
+**Description:** A `GET` request returns the possible parameters and a `POST` request returns the actual results. The results could be used to draw a histogram to quickly confirm whether the annotations follow a Gaussian distribution or are biased.
