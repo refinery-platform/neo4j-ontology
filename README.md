@@ -66,8 +66,9 @@ gradlew build
 
 ## 2. Endpoints
 
-**Get the annotation set hierarchy:***
+### Get the annotation set hierarchy
 
-URL: `http://localhost:7474/ontology/unmanaged/annotations/<USER_NAME>`
-Description: Returns an object with all terms (or classes) directly or indirectly related to annotations of user's accessible data sets.
+**URL:** `http://localhost:7474/ontology/unmanaged/annotations/<USER_NAME>`
+
+**Description:** Returns an object with all terms (or classes) directly or indirectly related to annotations of user's accessible data sets.
 
