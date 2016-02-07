@@ -1,4 +1,4 @@
-# Neo4J Ontology Extensions
+# Neo4J Ontology Extensions [![Build Status](https://travis-ci.org/refinery-platform/neo4j-ontology.svg?branch=master)](https://travis-ci.org/refinery-platform/neo4j-ontology)
 
 > Collection of plug-ins and extensions to simplify access to the ontology-related properties and the annotation set hierarchy
 
@@ -47,7 +47,7 @@ For the sake of concision I assume that Neo4J has been installed in `/neo4j/`. M
    neo4j start
    ```
 
-5. OPTIONAL: Open `http://localhost:7474` to check if nothing failed. In case nothing shows up check `/path/to/neo4j/data/log/console.log` and file an issue. Cheers.
+5. OPTIONAL: Open `http://localhost:7474` to check if everything works. In case nothing shows up check `/path/to/neo4j/data/log/console.log` and file an issue. Cheers.
 
 ### Compile yourself
 
@@ -68,12 +68,32 @@ gradlew build
 
 ### Get the annotation set hierarchy
 
+**HTTP:** GET
+
 **URL:** `http://localhost:7474/ontology/unmanaged/annotations/<USER_NAME>`
 
 **Description:** Returns an object with all terms (or classes) directly or indirectly related to annotations of user's accessible data sets.
+
+**HTTP:** POST
+
+**URL:** `http://localhost:7474/ontology/unmanaged/annotations/[<USER_NAME>]`
+
+**Description:** Labels ontology terms that belong to all (or a specific user's) annotation set hierarchy.
+
+**HTTP:** DELETE
+
+**URL:** `http://localhost:7474/ontology/unmanaged/annotations/`
+
+**Description:** Remove all annotation set-related labels.
 
 ### Get number of annotations per data set across the repository
 
 **URL:** `http://localhost:7474/db/data/ext/Annotations/graphdb/getNumAnnoPerDataSet`
 
 **Description:** A `GET` request returns the possible parameters and a `POST` request returns the actual results. The results could be used to draw a histogram to quickly confirm whether the annotations follow a Gaussian distribution or are biased.
+
+## 3. Get annotation set hierarchy
+
+1. Send a _POST_ request to `http://localhost:7474/ontology/unmanaged/annotations/` to prepare annotation sets for all users. Note, this step needs to be done whenever a user uploads, deletes or shares a data set.
+
+2. Send a _GET_ request to `http://localhost:7474/ontology/unmanaged/annotations/<USER_NAME>` to get the user's annotation set hierarchy.
