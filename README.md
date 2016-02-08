@@ -73,6 +73,10 @@ gradlew build
 
 **URL:** `http://localhost:7474/ontology/unmanaged/annotations/<USER_NAME>`
 
+**Parameters:**
+
+- `objectification`: If `true` the response `nodes` property will be an object with the keys being the ontology term's URI. Default return type is an Array, i.e. `false`.
+
 **Description:** Returns an object with all terms (or classes) directly or indirectly related to annotations of user's accessible data sets.
 
 **HTTP:** POST
