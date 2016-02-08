@@ -102,11 +102,17 @@ public class AnnotationResource
                         Node term = terms.next();
                         if (objectification) {
                             jg.writeFieldName(term.getProperty("uri").toString());
-                        }
-                        if (associatedDataSets.containsKey(term.getId())) {
-                            writeJsonNodeObject(jg, term, associatedDataSets.get(term.getId()));
+                            if (associatedDataSets.containsKey(term.getId())) {
+                                writeJsonNodeObjectifiedObject(jg, term, associatedDataSets.get(term.getId()));
+                            } else {
+                                writeJsonNodeObjectifiedObject(jg, term);
+                            }
                         } else {
-                            writeJsonNodeObject(jg, term);
+                            if (associatedDataSets.containsKey(term.getId())) {
+                                writeJsonNodeObject(jg, term, associatedDataSets.get(term.getId()));
+                            } else {
+                                writeJsonNodeObject(jg, term);
+                            }
                         }
                     }
                     tx.success();
@@ -284,6 +290,23 @@ public class AnnotationResource
         jg.writeEndObject();  // }
     }
 
+    private void writeJsonNodeObjectifiedObject (JsonGenerator jg, Node term) throws IOException {
+        jg.writeStartObject();  // {
+        jg.writeStringField("uri", term.getProperty("uri").toString());  // uri: "http://www.w3.org/2002/07/owl#Thing"
+        jg.writeStringField("ontId", term.getProperty("name").toString());  // ontId: "OWL:Thing"
+        jg.writeStringField("label", term.getProperty("rdfs:label", term.getProperty("name")).toString());  // ontId: "OWL:Thing"
+        jg.writeFieldName("dataSets");  // dataSets:
+        jg.writeStartObject();  // {
+        jg.writeEndObject();  // }
+        jg.writeFieldName("parents");  // parents:
+        jg.writeStartObject();  // {
+        for (Relationship subClassOf : term.getRelationships(SUBCLASS_OF, OUTGOING)) {
+            jg.writeBooleanField(subClassOf.getEndNode().getProperty("uri").toString(), true);
+        }
+        jg.writeEndObject();  // }
+        jg.writeEndObject();  // }
+    }
+
     private void writeJsonNodeObject (JsonGenerator jg, Node term, List<Long> dataSetsId) throws IOException {
         jg.writeStartObject();  // {
         jg.writeStringField("uri", term.getProperty("uri").toString());  // uri: "http://www.w3.org/2002/07/owl#Thing"
@@ -301,6 +324,26 @@ public class AnnotationResource
             jg.writeString(subClassOf.getEndNode().getProperty("uri").toString());
         }
         jg.writeEndArray();  // ]
+        jg.writeEndObject();  // }
+    }
+
+    private void writeJsonNodeObjectifiedObject (JsonGenerator jg, Node term, List<Long> dataSetsId) throws IOException {
+        jg.writeStartObject();  // {
+        jg.writeStringField("uri", term.getProperty("uri").toString());  // uri: "http://www.w3.org/2002/07/owl#Thing"
+        jg.writeStringField("ontId", term.getProperty("name").toString());  // ontId: "OWL:Thing"
+        jg.writeStringField("label", term.getProperty("rdfs:label", term.getProperty("name")).toString());  // ontId: "OWL:Thing"
+        jg.writeFieldName("dataSets");  // dataSets:
+        jg.writeStartObject();  // {
+        for (Long dataSetId : dataSetsId) {
+            jg.writeBooleanField(dataSetId.toString(), true);  // 123
+        }
+        jg.writeEndObject();  // }
+        jg.writeFieldName("parents");  // parents:
+        jg.writeStartObject();  // {
+        for (Relationship subClassOf : term.getRelationships(SUBCLASS_OF, OUTGOING)) {
+            jg.writeBooleanField(subClassOf.getEndNode().getProperty("uri").toString(), true);
+        }
+        jg.writeEndObject();  // }
         jg.writeEndObject();  // }
     }
 }
