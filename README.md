@@ -8,6 +8,7 @@ Content:
 
 * [1. Installation](#1-installation)
 * [2. Endpoints](#2-endpoints)
+* [3. Usage](#3-usage)
 
 ---
 
@@ -72,6 +73,10 @@ gradlew build
 
 **URL:** `http://localhost:7474/ontology/unmanaged/annotations/<USER_NAME>`
 
+**Parameters:**
+
+- `objectification`: If `true` the response `nodes` property will be an object with the keys being the ontology term's URI. Default return type is an Array, i.e. `false`.
+
 **Description:** Returns an object with all terms (or classes) directly or indirectly related to annotations of user's accessible data sets.
 
 **HTTP:** POST
@@ -92,7 +97,7 @@ gradlew build
 
 **Description:** A `GET` request returns the possible parameters and a `POST` request returns the actual results. The results could be used to draw a histogram to quickly confirm whether the annotations follow a Gaussian distribution or are biased.
 
-## 3. Get annotation set hierarchy
+## 3. Usage
 
 1. Send a _POST_ request to `http://localhost:7474/ontology/unmanaged/annotations/` to prepare annotation sets for all users. Note, this step needs to be done whenever a user uploads, deletes or shares a data set.
 

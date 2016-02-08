@@ -66,7 +66,10 @@ public class AnnotationResource
     @GET
     @Produces( MediaType.APPLICATION_JSON )
     @Path("/{userName}")
-    public Response getAnnotationSets( final @PathParam("userName") String userName ) {
+    public Response getAnnotationSets(
+        final @PathParam("userName") String userName,
+        final @DefaultValue("false") @QueryParam("objectification") boolean objectification
+    ) {
         StreamingOutput stream = new StreamingOutput() {
             @Override
             public void write(OutputStream os) throws IOException, WebApplicationException {
@@ -75,7 +78,11 @@ public class AnnotationResource
                 JsonGenerator jg = objectMapper.getFactory().createGenerator(os, JsonEncoding.UTF8);
                 jg.writeStartObject();
                 jg.writeFieldName("nodes");
-                jg.writeStartArray();
+                if (objectification) {
+                    jg.writeStartObject();
+                } else {
+                    jg.writeStartArray();
+                }
 
                 try (Transaction tx = graphDb.beginTx();
                      ResourceIterator<Node> users = graphDb.findNodes(USER, "name", userName)
@@ -93,6 +100,9 @@ public class AnnotationResource
                 ) {
                     while (terms.hasNext()) {
                         Node term = terms.next();
+                        if (objectification) {
+                            jg.writeFieldName(term.getProperty("uri").toString());
+                        }
                         if (associatedDataSets.containsKey(term.getId())) {
                             writeJsonNodeObject(jg, term, associatedDataSets.get(term.getId()));
                         } else {
@@ -102,7 +112,11 @@ public class AnnotationResource
                     tx.success();
                 }
 
-                jg.writeEndArray();
+                if (objectification) {
+                    jg.writeEndObject();
+                } else {
+                    jg.writeEndArray();
+                }
                 jg.writeEndObject();
                 jg.flush();
                 jg.close();
