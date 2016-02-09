@@ -177,7 +177,7 @@ public class AnnotationResource
             }
             tx.success();
         }
-        
+
         return Response.ok().build();
     }
 
@@ -186,13 +186,11 @@ public class AnnotationResource
     }
 
     private void labelAnnotationSetsPerUser (Node user) {
-        List<Node> accessibleDataSets = getAccessibleDataSets(user);
-        List<Node> directAnnotationTerms = getDirectAnnotationTerms(accessibleDataSets);
         String userName = capitalize(user.getProperty("name").toString());
 
         removeAnnotationSetLabels(DynamicLabel.label("AnnotationSets" + userName));
 
-        traverseUpAndDown(directAnnotationTerms, userName);
+        traverseUpAndDown(getDirectAnnotationTerms(getAccessibleDataSets(user)), userName);
     }
 
     private void removeAnnotationSetLabels (Label label) {
