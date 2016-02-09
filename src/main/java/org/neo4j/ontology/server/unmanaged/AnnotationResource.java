@@ -68,17 +68,19 @@ public class AnnotationResource
     @Path("/{userName}")
     public Response getAnnotationSets(
         final @PathParam("userName") String userName,
-        final @DefaultValue("false") @QueryParam("objectification") boolean objectification
+        final @DefaultValue("0") @QueryParam("objectification") int objectification
     ) {
         StreamingOutput stream = new StreamingOutput() {
             @Override
             public void write(OutputStream os) throws IOException, WebApplicationException {
                 Map<Long, List<Long>> associatedDataSets = new HashMap<>();
+                Label annotationLabel = DynamicLabel.label("AnnotationSets" + capitalize(userName));
 
                 JsonGenerator jg = objectMapper.getFactory().createGenerator(os, JsonEncoding.UTF8);
                 jg.writeStartObject();
                 jg.writeFieldName("nodes");
-                if (objectification) {
+
+                if (objectification > 0) {
                     jg.writeStartObject();
                 } else {
                     jg.writeStartArray();
@@ -94,31 +96,31 @@ public class AnnotationResource
                 }
 
                 try (Transaction tx = graphDb.beginTx();
-                     ResourceIterator<Node> terms = graphDb.findNodes(
-                         DynamicLabel.label("AnnotationSets" + capitalize(userName))
-                     )
+                     ResourceIterator<Node> terms = graphDb.findNodes(annotationLabel)
                 ) {
                     while (terms.hasNext()) {
                         Node term = terms.next();
-                        if (objectification) {
+                        if (objectification > 0) {
                             jg.writeFieldName(term.getProperty("uri").toString());
+                        }
+                        if (objectification > 1) {
                             if (associatedDataSets.containsKey(term.getId())) {
-                                writeJsonNodeObjectifiedObject(jg, term, associatedDataSets.get(term.getId()));
+                                writeJsonNodeObjectifiedObject(jg, term, annotationLabel, associatedDataSets.get(term.getId()));
                             } else {
-                                writeJsonNodeObjectifiedObject(jg, term);
+                                writeJsonNodeObjectifiedObject(jg, term, annotationLabel);
                             }
                         } else {
                             if (associatedDataSets.containsKey(term.getId())) {
-                                writeJsonNodeObject(jg, term, associatedDataSets.get(term.getId()));
+                                writeJsonNodeObject(jg, term, annotationLabel, associatedDataSets.get(term.getId()));
                             } else {
-                                writeJsonNodeObject(jg, term);
+                                writeJsonNodeObject(jg, term, annotationLabel);
                             }
                         }
                     }
                     tx.success();
                 }
 
-                if (objectification) {
+                if (objectification > 0) {
                     jg.writeEndObject();
                 } else {
                     jg.writeEndArray();
@@ -170,6 +172,14 @@ public class AnnotationResource
     @Produces( MediaType.APPLICATION_JSON )
     @Path("/{userName}")
     public Response labelAnnotationSets( final @PathParam("userName") String userName ) {
+        try (Transaction tx = graphDb.beginTx();
+             ResourceIterator<Node> users = graphDb.findNodes(USER, "name", userName)) {
+            if (users.hasNext()) {
+                labelAnnotationSetsPerUser(users.next());
+            }
+            tx.success();
+        }
+
         return Response.ok().build();
     }
 
@@ -178,13 +188,11 @@ public class AnnotationResource
     }
 
     private void labelAnnotationSetsPerUser (Node user) {
-        List<Node> accessibleDataSets = getAccessibleDataSets(user);
-        List<Node> directAnnotationTerms = getDirectAnnotationTerms(accessibleDataSets);
         String userName = capitalize(user.getProperty("name").toString());
 
         removeAnnotationSetLabels(DynamicLabel.label("AnnotationSets" + userName));
 
-        traverseUpAndDown(directAnnotationTerms, userName);
+        traverseUpAndDown(getDirectAnnotationTerms(getAccessibleDataSets(user)), userName);
     }
 
     private void removeAnnotationSetLabels (Label label) {
@@ -273,7 +281,7 @@ public class AnnotationResource
         return terms;
     }
 
-    private void writeJsonNodeObject (JsonGenerator jg, Node term) throws IOException {
+    private void writeJsonNodeObject (JsonGenerator jg, Node term, Label annotationLabel) throws IOException {
         jg.writeStartObject();  // {
         jg.writeStringField("uri", term.getProperty("uri").toString());  // uri: "http://www.w3.org/2002/07/owl#Thing"
         jg.writeStringField("ontId", term.getProperty("name").toString());  // ontId: "OWL:Thing"
@@ -281,16 +289,11 @@ public class AnnotationResource
         jg.writeFieldName("dataSets");  // dataSets:
         jg.writeStartArray();  // [
         jg.writeEndArray();  // ]
-        jg.writeFieldName("parents");  // parents:
-        jg.writeStartArray();  // [
-        for (Relationship subClassOf : term.getRelationships(SUBCLASS_OF, OUTGOING)) {
-            jg.writeString(subClassOf.getEndNode().getProperty("uri").toString());
-        }
-        jg.writeEndArray();  // ]
+        writeJsonNodeObjectParents(jg, term, annotationLabel);
         jg.writeEndObject();  // }
     }
 
-    private void writeJsonNodeObjectifiedObject (JsonGenerator jg, Node term) throws IOException {
+    private void writeJsonNodeObjectifiedObject (JsonGenerator jg, Node term, Label annotationLabel) throws IOException {
         jg.writeStartObject();  // {
         jg.writeStringField("uri", term.getProperty("uri").toString());  // uri: "http://www.w3.org/2002/07/owl#Thing"
         jg.writeStringField("ontId", term.getProperty("name").toString());  // ontId: "OWL:Thing"
@@ -298,16 +301,11 @@ public class AnnotationResource
         jg.writeFieldName("dataSets");  // dataSets:
         jg.writeStartObject();  // {
         jg.writeEndObject();  // }
-        jg.writeFieldName("parents");  // parents:
-        jg.writeStartObject();  // {
-        for (Relationship subClassOf : term.getRelationships(SUBCLASS_OF, OUTGOING)) {
-            jg.writeBooleanField(subClassOf.getEndNode().getProperty("uri").toString(), true);
-        }
-        jg.writeEndObject();  // }
+        writeJsonNodeObjectifiedObjectParents(jg, term, annotationLabel);
         jg.writeEndObject();  // }
     }
 
-    private void writeJsonNodeObject (JsonGenerator jg, Node term, List<Long> dataSetsId) throws IOException {
+    private void writeJsonNodeObject (JsonGenerator jg, Node term, Label annotationLabel, List<Long> dataSetsId) throws IOException {
         jg.writeStartObject();  // {
         jg.writeStringField("uri", term.getProperty("uri").toString());  // uri: "http://www.w3.org/2002/07/owl#Thing"
         jg.writeStringField("ontId", term.getProperty("name").toString());  // ontId: "OWL:Thing"
@@ -318,16 +316,11 @@ public class AnnotationResource
             jg.writeNumber(dataSetId);  // 123
         }
         jg.writeEndArray();  // ]
-        jg.writeFieldName("parents");  // parents:
-        jg.writeStartArray();  // [
-        for (Relationship subClassOf : term.getRelationships(SUBCLASS_OF, OUTGOING)) {
-            jg.writeString(subClassOf.getEndNode().getProperty("uri").toString());
-        }
-        jg.writeEndArray();  // ]
+        writeJsonNodeObjectParents(jg, term, annotationLabel);
         jg.writeEndObject();  // }
     }
 
-    private void writeJsonNodeObjectifiedObject (JsonGenerator jg, Node term, List<Long> dataSetsId) throws IOException {
+    private void writeJsonNodeObjectifiedObject (JsonGenerator jg, Node term, Label annotationLabel, List<Long> dataSetsId) throws IOException {
         jg.writeStartObject();  // {
         jg.writeStringField("uri", term.getProperty("uri").toString());  // uri: "http://www.w3.org/2002/07/owl#Thing"
         jg.writeStringField("ontId", term.getProperty("name").toString());  // ontId: "OWL:Thing"
@@ -338,12 +331,29 @@ public class AnnotationResource
             jg.writeBooleanField(dataSetId.toString(), true);  // 123
         }
         jg.writeEndObject();  // }
+        writeJsonNodeObjectifiedObjectParents(jg, term, annotationLabel);
+        jg.writeEndObject();  // }
+    }
+
+    private void writeJsonNodeObjectParents (JsonGenerator jg, Node term, Label annotationLabel) throws IOException {
+        jg.writeFieldName("parents");  // parents:
+        jg.writeStartArray();  // [
+        for (Relationship subClassOf : term.getRelationships(SUBCLASS_OF, OUTGOING)) {
+            if (subClassOf.getEndNode().hasLabel(annotationLabel)) {
+                jg.writeString(subClassOf.getEndNode().getProperty("uri").toString());
+            }
+        }
+        jg.writeEndArray();  // ]
+    }
+
+    private void writeJsonNodeObjectifiedObjectParents (JsonGenerator jg, Node term, Label annotationLabel) throws IOException {
         jg.writeFieldName("parents");  // parents:
         jg.writeStartObject();  // {
         for (Relationship subClassOf : term.getRelationships(SUBCLASS_OF, OUTGOING)) {
-            jg.writeBooleanField(subClassOf.getEndNode().getProperty("uri").toString(), true);
+            if (subClassOf.getEndNode().hasLabel(annotationLabel)) {
+                jg.writeBooleanField(subClassOf.getEndNode().getProperty("uri").toString(), true);
+            }
         }
-        jg.writeEndObject();  // }
         jg.writeEndObject();  // }
     }
 }
