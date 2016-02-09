@@ -170,6 +170,14 @@ public class AnnotationResource
     @Produces( MediaType.APPLICATION_JSON )
     @Path("/{userName}")
     public Response labelAnnotationSets( final @PathParam("userName") String userName ) {
+        try (Transaction tx = graphDb.beginTx();
+             ResourceIterator<Node> users = graphDb.findNodes(USER, "name", userName)) {
+            if (users.hasNext()) {
+                labelAnnotationSetsPerUser(users.next());
+            }
+            tx.success();
+        }
+        
         return Response.ok().build();
     }
 
